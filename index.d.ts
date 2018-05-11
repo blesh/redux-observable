@@ -63,4 +63,6 @@ export declare function combineEpics<E>(...epics: E[]): E;
 
 export declare function ofType<T extends Action, R extends T = T, K extends R['type'] = R['type']>(...key: K[]): (source: Observable<T>) => Observable<R>;
 
+export declare function wrapClosableEpic<E>(epic: E): E;
+
 export declare const EPIC_END: '@@redux-observable/EPIC_END';
