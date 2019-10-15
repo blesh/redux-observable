@@ -1,3 +1,4 @@
+import { catchError } from 'rxjs/operators';
 import { merge } from 'rxjs';
 
 /**
@@ -10,7 +11,24 @@ export const combineEpics = (...epics) => {
       if (!output$) {
         throw new TypeError(`combineEpics: one of the provided Epics "${epic.name || '<anonymous>'}" does not return a stream. Double check you\'re not missing a return statement!`);
       }
-      return output$;
+      return (
+        process.env.NODE_ENV !== 'production' && output$.pipe
+          ? output$.pipe(
+            catchError(error => {
+              if (console.error) {
+                console.error(
+                  epic.name,
+                  error && error.constructor && error.constructor.name === 'ErrorEvent'
+                    ? error.error.stack
+                    : error
+                );
+              }
+
+              throw error;
+            })
+          )
+          : output$
+      );
     })
   );
 

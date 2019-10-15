@@ -18,7 +18,7 @@ describe('combineEpics', () => {
         map(action => ({ type: 'DELEGATED2', action, store }))
       );
 
-    const epic = combineEpics(
+    const rootEpic = combineEpics(
       epic1,
       epic2
     );
@@ -26,7 +26,7 @@ describe('combineEpics', () => {
     const store = { I: 'am', a: 'store' };
     const subject = new Subject();
     const actions = new ActionsObservable(subject);
-    const result = epic(actions, store);
+    const result = rootEpic(actions, store);
     const emittedActions = [];
 
     result.subscribe(emittedAction => emittedActions.push(emittedAction));
@@ -70,6 +70,43 @@ describe('combineEpics', () => {
     expect(() => {
       rootEpic();
     }).to.throw('combineEpics: one of the provided Epics "epic2" does not return a stream. Double check you\'re not missing a return statement!');
+  });
+
+  it('should log the epic name when an error occurs', done => {
+    const epic1 = (actions, store) =>
+      actions.pipe(
+        ofType('ACTION1'),
+        map(() => { throw new Error('ERROR1'); })
+      );
+    const epic2 = (actions, store) =>
+      actions.pipe(
+        ofType('ACTION2'),
+        map(() => { throw new Error('ERROR2'); })
+      );
+
+    const rootEpic = combineEpics(
+      epic1,
+      epic2
+    );
+
+    const subject = new Subject();
+    const actions = new ActionsObservable(subject);
+
+    rootEpic(actions).subscribe({
+      error: console.error,
+    });
+
+    const originalConsoleError = console.error;
+
+    console.error = (epicName, error) => {
+      expect(epicName).to.equal('epic1');
+      expect(error).to.be.an('error');
+      done();
+    };
+
+    subject.next({ type: 'ACTION1' });
+
+    console.error = originalConsoleError;
   });
 
   describe('returned epic function name', () => {
